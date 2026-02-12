@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL from environment
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://resumebuilderb-production.up.railway.app',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://resume-builder-b.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
