@@ -277,6 +277,7 @@ const ResumeEdit = () => {
       const file = new File([pdfBlob], `${resume?.title || 'resume'}.pdf`, { type: 'application/pdf' });
 
       // Check size before sending (Brevo limit is 20MB)
+      console.log(`Generating PDF. Size: ${file.size} bytes`);
       if (file.size > 18 * 1024 * 1024) {
         toast.update(toastId, { render: 'Resume PDF is too large to email. Try downloading instead.', type: 'error', isLoading: false, autoClose: 5000 });
         return;
