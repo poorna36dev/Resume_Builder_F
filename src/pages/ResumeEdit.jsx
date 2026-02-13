@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getResumeById, updateResume } from '../services/api/resumeApi';
 import { sendResumeEmail } from '../services/api/emailApi';
+import { uploadToCloudinary } from '../services/api/cloudinaryApi';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import {
@@ -256,37 +257,44 @@ const ResumeEdit = () => {
   };
 
   /* ── Email Resume ── */
+  /* ── Email Resume ── */
   const handleSendEmail = async () => {
     if (!emailForm.recipientEmail.trim()) { toast.error('Recipient email is required'); return; }
     if (!previewRef.current) return;
 
     // Show loading toast that persists
-    const toastId = toast.loading('Sending email... Please wait while we generate the PDF.', { autoClose: false });
+    const toastId = toast.loading('Generating PDF...', { autoClose: false });
     
     setSendingEmail(true);
     try {
-      // Use lower scale + JPEG compression to keep PDF under Brevo's 20MB email limit
+      // Use lower scale + JPEG compression to keep PDF size optimized
       const pdf = await generatePDF({ scale: 1.5, format: 'JPEG', quality: 0.8 });
       
       if (!pdf) {
         toast.dismiss(toastId);
+        setSendingEmail(false);
         return;
       }
 
       const pdfBlob = pdf.output('blob');
       const file = new File([pdfBlob], `${resume?.title || 'resume'}.pdf`, { type: 'application/pdf' });
 
-      // Check size before sending (Brevo limit is 20MB)
-      console.log(`Generating PDF. Size: ${file.size} bytes`);
-      if (file.size > 18 * 1024 * 1024) {
-        toast.update(toastId, { render: 'Resume PDF is too large to email. Try downloading instead.', type: 'error', isLoading: false, autoClose: 5000 });
+      // Check size (Max 10MB)
+      console.log(`PDF Size: ${file.size} bytes`);
+      if (file.size > 10 * 1024 * 1024) {
+        toast.update(toastId, { render: 'Resume PDF is too large (max 10MB). Try downloading instead.', type: 'error', isLoading: false, autoClose: 5000 });
+        setSendingEmail(false);
         return;
       }
 
-      // Update toast progress
-      toast.update(toastId, { render: 'PDF generated! Sending email now...', isLoading: true });
+      // 1. Upload to Cloudinary
+      toast.update(toastId, { render: 'Uploading resume to secure storage...', isLoading: true });
+      const downloadUrl = await uploadToCloudinary(file);
+      console.log("Uploaded to Cloudinary:", downloadUrl);
 
-      await sendResumeEmail(emailForm.recipientEmail, emailForm.subject, emailForm.message, file);
+      // 2. Send Email with Link
+      toast.update(toastId, { render: 'Sending email notification...', isLoading: true });
+      await sendResumeEmail(emailForm.recipientEmail, downloadUrl, emailForm.subject, emailForm.message);
       
       // Update toast to success
       toast.update(toastId, { render: 'Resume sent successfully! Recipient will receive it shortly.', type: 'success', isLoading: false, autoClose: 3000 });
@@ -295,11 +303,10 @@ const ResumeEdit = () => {
       setEmailForm({ recipientEmail: '', subject: '', message: '' });
     } catch (err) {
       console.error(err);
-      const msg = err.response?.data?.message || 'Failed to send email';
-      const userMsg = typeof msg === 'string' && msg.includes('size') ? 'Resume too large to email.' : msg;
+      const msg = err.message || 'Failed to send email';
       
       // Update toast to error
-      toast.update(toastId, { render: userMsg, type: 'error', isLoading: false, autoClose: 5000 });
+      toast.update(toastId, { render: msg, type: 'error', isLoading: false, autoClose: 5000 });
     } finally {
       setSendingEmail(false);
     }
