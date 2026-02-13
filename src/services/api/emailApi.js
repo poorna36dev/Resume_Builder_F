@@ -7,7 +7,5 @@ export const sendResumeEmail = (recipientEmail, subject, message, pdfFile) => {
   formData.append('subject', subject);
   formData.append('message', message);
   formData.append('pdfFile', pdfFile);
-  return axiosInstance.post('/api/email/send-email', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return axiosInstance.post('/api/email/send-email', formData);
 };
