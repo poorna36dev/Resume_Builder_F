@@ -1,14 +1,11 @@
 import axios from 'axios';
 
-// Create axios instance with base URL from environment
+// Create axios instance
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'https://resume-builder-b.onrender.com',
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
-// Request interceptor — attach JWT token to every request
+// Attach JWT token
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -20,8 +17,6 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — just pass errors through.
-// Auth state is managed entirely by AuthContext.
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => Promise.reject(error)
