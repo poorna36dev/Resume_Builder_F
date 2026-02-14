@@ -11,8 +11,6 @@ export const uploadToCloudinary = async (file) => {
   formData.append("file", file);
   formData.append("upload_preset", UPLOAD_PRESET);
   formData.append("folder", "resumes");
-  formData.append("resource_type", "raw");   // 🔥 CRITICAL
-  formData.append("access_mode", "public");  // 🔥 FORCE PUBLIC
 
   try {
     const response = await fetch(
